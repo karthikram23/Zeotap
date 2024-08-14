@@ -1,5 +1,3 @@
-<<<<<<< SEARCH
-=======
 import ast
 import operator
 
@@ -64,4 +62,3 @@ def evaluate_rule(node, data):
         return ops[op](left_value, right_value)
 
     raise ValueError(f"Invalid node type: {node.type}")
->>>>>>> REPLACE
