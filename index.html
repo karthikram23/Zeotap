@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Engine and Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        {% if current_user.is_authenticated %}
+            <span>Welcome, {{ current_user.username }}!</span>
+            {% if current_user.profile_icon %}
+                <img src="{{ current_user.profile_icon }}" alt="Profile Icon" class="profile-icon">
+            {% endif %}
+            <a href="{{ url_for('profile') }}">Profile</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </header>
+
+    <h1>Rule Engine</h1>
+    <div id="rule-engine">
+        <h2>Create Rule</h2>
+        <form id="create-rule-form">
+            <input type="text" id="rule-name" placeholder="Rule Name" required>
+            <input type="text" id="rule-string" placeholder="Rule String" required>
+            <button type="submit">Create Rule</button>
+        </form>
+
+        <h2>Evaluate Rule</h2>
+        <form id="evaluate-rule-form">
+            <select id="rule-select">
+                {% for rule in rules %}
+                    <option value="{{ rule.id }}">{{ rule.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="user-data" placeholder="User Data (JSON)" required>
+            <button type="submit">Evaluate Rule</button>
+        </form>
+        <div id="evaluation-result"></div>
+
+        <h2>Combine Rules</h2>
+        <form id="combine-rules-form">
+            <select id="rules-to-combine" multiple>
+                {% for rule in rules %}
+                    <option value="{{ rule.id }}">{{ rule.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Combine Rules</button>
+        </form>
+        <div id="combined-rule-result"></div>
+
+        <h2>Modify Rule</h2>
+        <form id="modify-rule-form">
+            <select id="rule-to-modify">
+                {% for rule in rules %}
+                    <option value="{{ rule.id }}">{{ rule.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="modification-path" placeholder="Modification Path (e.g., left.right)" required>
+            <input type="text" id="new-value" placeholder="New Value" required>
+            <button type="submit">Modify Rule</button>
+        </form>
+        <div id="modified-rule-result"></div>
+
+        <h2>Add Attribute</h2>
+        <form id="add-attribute-form">
+            <input type="text" id="attribute-name" placeholder="Attribute Name" required>
+            <select id="attribute-type">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+            </select>
+            <button type="submit">Add Attribute</button>
+        </form>
+    </div>
+
+    <h1>Tic-Tac-Toe</h1>
+    <div id="board">
+        {% for i in range(9) %}
+        <div class="cell" data-index="{{ i }}"></div>
+        {% endfor %}
+    </div>
+    <div id="message"></div>
+    <button id="start">Start Game</button>
+    <button id="end">End Game</button>
+
+    <div id="leaderboard">
+        <h2>Leaderboard</h2>
+        <ul id="leaderboard-list">
+            {% for user in leaderboard %}
+                <li>{{ user.username }}: {{ user.wins }} wins</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Existing Tic-Tac-Toe game script
+
+        // Rule Engine Scripts
+        $('#create-rule-form').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/create_rule',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: $('#rule-name').val(),
+                    rule: $('#rule-string').val()
+                }),
+                success: function(response) {
+                    alert('Rule created successfully');
+                    location.reload();  // Reload the page to update the rule list
+                },
+                error: function(xhr) {
+                    alert('Error creating rule: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+
+        $('#evaluate-rule-form').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/evaluate_rule',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    rule_id: $('#rule-select').val(),
+                    user_data: JSON.parse($('#user-data').val())
+                }),
+                success: function(response) {
+                    $('#evaluation-result').text('Rule evaluation result: ' + response.result);
+                },
+                error: function(xhr) {
+                    alert('Error evaluating rule: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+
+        $('#combine-rules-form').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/combine_rules',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    rule_ids: $('#rules-to-combine').val()
+                }),
+                success: function(response) {
+                    $('#combined-rule-result').text('Combined rule: ' + response.combined_rule);
+                },
+                error: function(xhr) {
+                    alert('Error combining rules: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+
+        $('#modify-rule-form').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/modify_rule',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    rule_id: $('#rule-to-modify').val(),
+                    path: $('#modification-path').val(),
+                    new_value: $('#new-value').val()
+                }),
+                success: function(response) {
+                    $('#modified-rule-result').text('Modified rule: ' + response.new_rule);
+                },
+                error: function(xhr) {
+                    alert('Error modifying rule: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+
+        $('#add-attribute-form').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/add_attribute',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: $('#attribute-name').val(),
+                    data_type: $('#attribute-type').val()
+                }),
+                success: function(response) {
+                    alert('Attribute added successfully');
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error adding attribute: ' + xhr.responseJSON.error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
